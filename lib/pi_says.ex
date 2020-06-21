@@ -6,12 +6,12 @@ defmodule PiSays do
   end
 
   def play(board, sentence) do
-    _user_sentence =
+    user_sentence =
       board
       |> @game_board.tell(sentence)
-      |> @game_board.get_user_sentence()
+      |> @game_board.get_user_sentence(Enum.count(sentence))
 
-    if [true, false] |> Enum.random() do
+    if user_sentence == sentence do
       @game_board.tell_victory(board)
       play(board, expand_sentence(sentence))
     else
@@ -29,7 +29,7 @@ defmodule PiSays do
   def next_word() do
     :random.seed(:erlang.now())
 
-    [:blue, :red, :yellow, :green]
+    [:blue, :red, :green]
     |> Enum.random()
   end
 end
