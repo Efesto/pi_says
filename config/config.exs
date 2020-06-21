@@ -5,7 +5,7 @@
 # is restricted to this project.
 import Config
 
-config :pi_says, target: Mix.target()
+config :pi_says, target: Mix.target(), game_board: PiSays.GameBoard
 
 # Customize non-Elixir parts of the firmware. See
 # https://hexdocs.pm/nerves/advanced-configuration.html for details.

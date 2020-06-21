@@ -9,6 +9,7 @@ defmodule PiSays.Application do
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: PiSays.Supervisor]
+
     children =
       [
         # Children for all targets
@@ -30,9 +31,7 @@ defmodule PiSays.Application do
 
   def children(_target) do
     [
-      # Children for all targets except host
-      # Starts a worker by calling: PiSays.Worker.start_link(arg)
-      # {PiSays.Worker, arg},
+      {PiSays.Worker, []}
     ]
   end
 
