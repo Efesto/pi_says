@@ -29,7 +29,7 @@ defmodule PiSays do
   def next_word() do
     :random.seed(:erlang.now())
 
-    [:blue, :red, :green]
+    [:blue, :red, :green, :yellow]
     |> Enum.random()
   end
 end

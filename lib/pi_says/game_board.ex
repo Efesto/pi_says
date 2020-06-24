@@ -1,11 +1,10 @@
 defmodule PiSays.GameBoard do
   alias Circuits.GPIO
 
-  # TODO: Why yellow doesn't work?
-
   # Refactoring
   # Test board
-  @colors_gpios [red: 3, green: 5, blue: 7]
+  @colors_gpios [red: 3, green: 5, blue: 9, yellow: 10]
+  @buttons_gpios [red: 4, green: 6, blue: 8, yellow: 7]
   @buzzer_gpio 11
 
   def new() do
@@ -16,9 +15,9 @@ defmodule PiSays.GameBoard do
         Enum.map(@colors_gpios, fn {name, gpio} ->
           with {:ok, led_ref} <- GPIO.open(gpio, :output),
                :ok <- GPIO.write(led_ref, 0),
-               {:ok, button_ref} <- GPIO.open(gpio + 1, :input),
+               {:ok, button_ref} <- GPIO.open(@buttons_gpios[name], :input),
                :ok <- GPIO.set_interrupts(button_ref, :rising) do
-            {name, %{led: led_ref, button: %{ref: button_ref, gpio: gpio + 1}}}
+            {name, %{led: %{ref: led_ref, gpio: gpio}, button: %{ref: button_ref, gpio: @buttons_gpios[name]}}}
           end
         end),
       buzzer: buzzer_ref
@@ -28,10 +27,10 @@ defmodule PiSays.GameBoard do
   def tell(board, []), do: board
 
   def tell(board, [head | tail]) do
-    led = board.words[head].led
-    GPIO.write(led, 1)
+    led_ref = board.words[head].led.ref
+    GPIO.write(led_ref, 1)
     :timer.sleep(600)
-    GPIO.write(led, 0)
+    GPIO.write(led_ref, 0)
     :timer.sleep(150)
 
     tell(board, tail)
@@ -84,10 +83,10 @@ defmodule PiSays.GameBoard do
             # TODO: correct this threshold offset
             if timestamp > threshold_timestamp do
               word = gpio_to_word[:"io_#{gpio_id}"]
-              led = board.words[word].led
-              GPIO.write(led, 1)
+              led_ref = board.words[word].led.ref
+              GPIO.write(led_ref, 1)
               :timer.sleep(300)
-              GPIO.write(led, 0)
+              GPIO.write(led_ref, 0)
               [word]
             else
               []

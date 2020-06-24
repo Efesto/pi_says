@@ -23,9 +23,7 @@ defmodule PiSays.Application do
   # List all child processes to be supervised
   def children(:host) do
     [
-      # Children that only run on the host
-      # Starts a worker by calling: PiSays.Worker.start_link(arg)
-      # {PiSays.Worker, arg},
+      {PiSays.Worker, []}
     ]
   end
 
