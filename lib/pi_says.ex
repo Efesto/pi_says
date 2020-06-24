@@ -2,7 +2,8 @@ defmodule PiSays do
   @game_board Application.fetch_env!(:pi_says, :game_board)
 
   def play(board) do
-    play(board, [next_word()])
+    @game_board.tell_start(board)
+    |> play([next_word()])
   end
 
   def play(board, sentence) do
@@ -12,11 +13,13 @@ defmodule PiSays do
       |> @game_board.get_user_sentence(Enum.count(sentence))
 
     if user_sentence == sentence do
-      @game_board.tell_victory(board)
-      play(board, expand_sentence(sentence))
+      board
+      |> @game_board.tell_victory()
+      |> play(expand_sentence(sentence))
     else
-      @game_board.tell_loss(board)
-      play(board, [])
+      board
+      |> @game_board.tell_loss()
+      |> play([])
     end
 
     :timer.sleep(5000)

@@ -26,8 +26,8 @@ defmodule PiSays.GameBoard do
 
   def tell(board, []), do: board
 
-  def tell(board, [head | tail]) do
-    led_ref = board.words[head].led.ref
+  def tell(%{words: words} = board, [head | tail]) do
+    led_ref = words[head].led.ref
     GPIO.write(led_ref, 1)
     :timer.sleep(600)
     GPIO.write(led_ref, 0)
@@ -36,9 +36,7 @@ defmodule PiSays.GameBoard do
     tell(board, tail)
   end
 
-  def tell_victory(board) do
-    buzzer_ref = board.buzzer
-
+  def tell_victory(%{buzzer: buzzer_ref} = board) do
     GPIO.write(buzzer_ref, 1)
     :timer.sleep(300)
     GPIO.write(buzzer_ref, 0)
@@ -47,12 +45,10 @@ defmodule PiSays.GameBoard do
     :timer.sleep(300)
     GPIO.write(buzzer_ref, 0)
 
-    :ok
+    board
   end
 
-  def tell_loss(board) do
-    buzzer_ref = board.buzzer
-
+  def tell_loss(%{buzzer: buzzer_ref} = board) do
     GPIO.write(buzzer_ref, 1)
     :timer.sleep(300)
     GPIO.write(buzzer_ref, 0)
@@ -61,19 +57,31 @@ defmodule PiSays.GameBoard do
     :timer.sleep(1000)
     GPIO.write(buzzer_ref, 0)
 
-    :ok
+    board
   end
 
-  def get_user_sentence(board, sentence_length) do
+  def tell_start(%{buzzer: buzzer_ref} = board) do
+    GPIO.write(buzzer_ref, 1)
+    :timer.sleep(200)
+    GPIO.write(buzzer_ref, 0)
+    :timer.sleep(100)
+    GPIO.write(buzzer_ref, 1)
+    :timer.sleep(200)
+    GPIO.write(buzzer_ref, 0)
+
+    board
+  end
+
+  def get_user_sentence(%{words: words} = board, sentence_length) do
     gpio_to_word =
-      Enum.map(board.words, fn {name, %{button: %{gpio: gpio}}} ->
+      Enum.map(words, fn {name, %{button: %{gpio: gpio}}} ->
         {:"io_#{gpio}", name}
       end)
 
     read_button(gpio_to_word, board, [], sentence_length, :erlang.monotonic_time())
   end
 
-  def read_button(gpio_to_word, board, accumulator, sentence_length, threshold_timestamp) do
+  def read_button(gpio_to_word, %{words: words} = board, accumulator, sentence_length, threshold_timestamp) do
     if Enum.count(accumulator) == sentence_length do
       accumulator
     else
@@ -83,7 +91,7 @@ defmodule PiSays.GameBoard do
             # TODO: correct this threshold offset
             if timestamp > threshold_timestamp do
               word = gpio_to_word[:"io_#{gpio_id}"]
-              led_ref = board.words[word].led.ref
+              led_ref = words[word].led.ref
               GPIO.write(led_ref, 1)
               :timer.sleep(300)
               GPIO.write(led_ref, 0)
