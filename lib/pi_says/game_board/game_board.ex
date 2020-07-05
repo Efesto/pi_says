@@ -1,42 +1,19 @@
 defmodule PiSays.GameBoard do
   alias Circuits.GPIO
+  alias PiSays.GameBoard.GPIO, as: BoardGPIO
+  alias PiSays.GameBoard.GPIOConfig
 
-  # Refactoring
-  # Test board
-  @colors_gpios [red: 3, green: 5, blue: 9, yellow: 10]
-  @buttons_gpios [red: 4, green: 6, blue: 8, yellow: 7]
-  @buzzer_gpio 11
+  def tell(%GPIOConfig{} = config, []), do: config
 
-  def new() do
-    {:ok, buzzer_ref} = GPIO.open(@buzzer_gpio, :output)
-
-    %{
-      words:
-        Enum.map(@colors_gpios, fn {name, gpio} ->
-          with {:ok, led_ref} <- GPIO.open(gpio, :output),
-               :ok <- GPIO.write(led_ref, 0),
-               {:ok, button_ref} <- GPIO.open(@buttons_gpios[name], :input),
-               :ok <- GPIO.set_interrupts(button_ref, :rising) do
-            {name, %{led: %{ref: led_ref, gpio: gpio}, button: %{ref: button_ref, gpio: @buttons_gpios[name]}}}
-          end
-        end),
-      buzzer: buzzer_ref
-    }
-  end
-
-  def tell(board, []), do: board
-
-  def tell(%{words: words} = board, [head | tail]) do
+  def tell(%GPIOConfig{words: words} = config, [head | tail]) do
     led_ref = words[head].led.ref
-    GPIO.write(led_ref, 1)
-    :timer.sleep(600)
-    GPIO.write(led_ref, 0)
+    BoardGPIO.long_blink(led_ref)
     :timer.sleep(150)
 
-    tell(board, tail)
+    tell(config, tail)
   end
 
-  def tell_victory(%{buzzer: buzzer_ref} = board) do
+  def tell_victory(%GPIOConfig{buzzer: buzzer_ref} = config) do
     GPIO.write(buzzer_ref, 1)
     :timer.sleep(300)
     GPIO.write(buzzer_ref, 0)
@@ -45,10 +22,10 @@ defmodule PiSays.GameBoard do
     :timer.sleep(300)
     GPIO.write(buzzer_ref, 0)
 
-    board
+    config
   end
 
-  def tell_loss(%{buzzer: buzzer_ref} = board) do
+  def tell_loss(%GPIOConfig{buzzer: buzzer_ref} = config) do
     GPIO.write(buzzer_ref, 1)
     :timer.sleep(300)
     GPIO.write(buzzer_ref, 0)
@@ -57,10 +34,10 @@ defmodule PiSays.GameBoard do
     :timer.sleep(1000)
     GPIO.write(buzzer_ref, 0)
 
-    board
+    config
   end
 
-  def tell_start(%{buzzer: buzzer_ref} = board) do
+  def tell_start(%GPIOConfig{buzzer: buzzer_ref} = config) do
     GPIO.write(buzzer_ref, 1)
     :timer.sleep(200)
     GPIO.write(buzzer_ref, 0)
@@ -69,19 +46,25 @@ defmodule PiSays.GameBoard do
     :timer.sleep(200)
     GPIO.write(buzzer_ref, 0)
 
-    board
+    config
   end
 
-  def get_user_sentence(%{words: words} = board, sentence_length) do
+  def get_user_sentence(%GPIOConfig{words: words} = config, sentence_length) do
     gpio_to_word =
       Enum.map(words, fn {name, %{button: %{gpio: gpio}}} ->
         {:"io_#{gpio}", name}
       end)
 
-    read_button(gpio_to_word, board, [], sentence_length, :erlang.monotonic_time())
+    read_button(gpio_to_word, config, [], sentence_length, :erlang.monotonic_time())
   end
 
-  def read_button(gpio_to_word, %{words: words} = board, accumulator, sentence_length, threshold_timestamp) do
+  def read_button(
+        gpio_to_word,
+        %GPIOConfig{words: words} = config,
+        accumulator,
+        sentence_length,
+        threshold_timestamp
+      ) do
     if Enum.count(accumulator) == sentence_length do
       accumulator
     else
@@ -92,9 +75,7 @@ defmodule PiSays.GameBoard do
             if timestamp > threshold_timestamp do
               word = gpio_to_word[:"io_#{gpio_id}"]
               led_ref = words[word].led.ref
-              GPIO.write(led_ref, 1)
-              :timer.sleep(300)
-              GPIO.write(led_ref, 0)
+              BoardGPIO.long_blink(led_ref)
               [word]
             else
               []
@@ -106,7 +87,7 @@ defmodule PiSays.GameBoard do
 
       read_button(
         gpio_to_word,
-        board,
+        config,
         accumulator ++ read_values,
         sentence_length,
         threshold_timestamp

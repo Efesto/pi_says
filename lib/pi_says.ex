@@ -1,28 +1,31 @@
 defmodule PiSays do
-  @game_board Application.fetch_env!(:pi_says, :game_board)
+  alias PiSays.GameBoard.GPIOConfig
+  alias PiSays.GameBoard
 
-  def play(board) do
-    @game_board.tell_start(board)
+  @round_interval 5000
+
+  def play(%GPIOConfig{} = board_config) do
+    GameBoard.tell_start(board_config)
     |> play([next_word()])
   end
 
-  def play(board, sentence) do
+  def play(%GPIOConfig{} = board_config, sentence) do
     user_sentence =
-      board
-      |> @game_board.tell(sentence)
-      |> @game_board.get_user_sentence(Enum.count(sentence))
+      board_config
+      |> GameBoard.tell(sentence)
+      |> GameBoard.get_user_sentence(Enum.count(sentence))
 
     if user_sentence == sentence do
-      board
-      |> @game_board.tell_victory()
+      board_config
+      |> GameBoard.tell_victory()
       |> play(expand_sentence(sentence))
     else
-      board
-      |> @game_board.tell_loss()
+      board_config
+      |> GameBoard.tell_loss()
       |> play([])
     end
 
-    :timer.sleep(5000)
+    :timer.sleep(@round_interval)
   end
 
   defp expand_sentence(sentence) do

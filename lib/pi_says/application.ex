@@ -22,14 +22,12 @@ defmodule PiSays.Application do
 
   # List all child processes to be supervised
   def children(:host) do
-    [
-      {PiSays.Worker, []}
-    ]
+    []
   end
 
   def children(_target) do
     [
-      {PiSays.Worker, []}
+      {PiSays.GameWorker, []}
     ]
   end
 
