@@ -2,7 +2,7 @@
 
 Simon Says game implementation with Raspberry Pi and Nerves.
 
-!()[https://media.giphy.com/media/Zabia7dy8zdtBwnru5/giphy.gif]
+!()[/pi_says.gif]
 
 
 ## Hardware requirements
@@ -26,7 +26,7 @@ The gpio pin configuration is set within the `GPIOConfig` file, it can be modifi
 
 Each led requires an electric resistor in series, this is my config:
 
-!()[raspberry_pi_config.png]
+!(Raspberry Pi Says config)[/raspberry_pi_config.png]
 
 
 
