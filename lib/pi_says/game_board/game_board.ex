@@ -1,13 +1,12 @@
 defmodule PiSays.GameBoard do
   alias Circuits.GPIO
-  alias PiSays.GameBoard.GPIO, as: BoardGPIO
   alias PiSays.GameBoard.GPIOConfig
 
   def tell(%GPIOConfig{} = config, []), do: config
 
   def tell(%GPIOConfig{words: words} = config, [head | tail]) do
     led_ref = words[head].led.ref
-    BoardGPIO.long_blink(led_ref)
+    long_blink(led_ref)
     :timer.sleep(150)
 
     tell(config, tail)
@@ -49,33 +48,28 @@ defmodule PiSays.GameBoard do
     config
   end
 
-  def get_user_sentence(%GPIOConfig{words: words} = config, sentence_length) do
-    gpio_to_word =
-      Enum.map(words, fn {name, %{button: %{gpio: gpio}}} ->
-        {:"io_#{gpio}", name}
-      end)
-
-    read_button(gpio_to_word, config, [], sentence_length, :erlang.monotonic_time())
+  def get_user_sentence(%GPIOConfig{} = config, sentence_length) do
+    read_button(config, [], sentence_length, :erlang.monotonic_time())
   end
 
   def read_button(
-        gpio_to_word,
         %GPIOConfig{words: words} = config,
-        accumulator,
+        user_sentence,
         sentence_length,
         threshold_timestamp
       ) do
-    if Enum.count(accumulator) == sentence_length do
-      accumulator
+    if Enum.count(user_sentence) == sentence_length do
+      user_sentence
     else
-      read_values =
+      user_word =
         receive do
-          {:circuits_gpio, gpio_id, timestamp, 1} ->
+          {:circuits_gpio, gpio, timestamp, 1} ->
             # TODO: correct this threshold offset
+            # https://github.com/elixir-circuits/circuits_gpio/issues/3
             if timestamp > threshold_timestamp do
-              word = gpio_to_word[:"io_#{gpio_id}"]
+              word = button_gpio_to_word(config, gpio)
               led_ref = words[word].led.ref
-              BoardGPIO.long_blink(led_ref)
+              long_blink(led_ref)
               [word]
             else
               []
@@ -86,12 +80,25 @@ defmodule PiSays.GameBoard do
         end
 
       read_button(
-        gpio_to_word,
         config,
-        accumulator ++ read_values,
+        user_sentence ++ user_word,
         sentence_length,
         threshold_timestamp
       )
     end
+  end
+
+  def long_blink(ref) do
+    GPIO.write(ref, 1)
+    :timer.sleep(600)
+    GPIO.write(ref, 0)
+  end
+
+  def button_gpio_to_word(%GPIOConfig{words: words}, gpio) do
+    {word, %{}} =
+      words
+      |> Enum.find(fn {_, %{button: %{gpio: wgpio}}} -> gpio == wgpio end)
+
+    word
   end
 end
