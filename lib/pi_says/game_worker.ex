@@ -1,10 +1,10 @@
 defmodule PiSays.GameWorker do
-  def start_link(arg) do
-    pid = spawn_link(__MODULE__, :play, arg)
+  def start_link(_arg) do
+    pid = spawn_link(__MODULE__, :play, [])
     {:ok, pid}
   end
 
-  def play(_arg) do
+  def play() do
     PiSays.GameBoard.GPIOConfig.new()
     |> PiSays.play()
   end
